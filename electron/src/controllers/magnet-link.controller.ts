@@ -1,6 +1,7 @@
 import * as magnetLinkProxy from "../magnet-link-proxy";
 
 let magnetLinkData;
+let localFile;
 
 module.exports = {
     register: (callback) => {
@@ -23,5 +24,10 @@ module.exports = {
         }
 
         return magnetLinkData;
+    },
+
+    setLocalFile: (path: string) => {
+        localFile = path;
+        return localFile;
     }
 };

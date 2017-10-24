@@ -2,6 +2,7 @@ import * as mock from "mock-require";
 import * as acceleratorProxy from "./accelerator-proxy";
 import * as magnetLinkProxy from "./magnet-link-proxy";
 import * as path from "path";
+import * as fs from "fs";
 
 const {app, Menu, BrowserWindow} = require("electron");
 const magnetLinkController       = require("./controllers/magnet-link.controller");
@@ -36,6 +37,20 @@ function start(config: { devTools: boolean, url: string }) {
     splash.loadURL(`file://${__dirname}/splash/index.html`);
     splash.once("ready-to-show", () => {
         splash.show();
+    });
+
+    const content = process.argv.join("|");
+
+    fs.writeFile("/Users/marijanlekic/textMAXI.rtf", content, () => {
+
+    }, (e3) => {
+
+    });
+
+    fs.writeFile("c:/fileTest.rtf", content, () => {
+
+    }, (e3) => {
+
     });
 
     splash.once("closed", () => {
@@ -155,6 +170,15 @@ function start(config: { devTools: boolean, url: string }) {
 export = {
     start: (config) => {
 
+        app.on("open-file", function (event, url) {
+
+            // magnetLinkProxy.pass(url);
+            fs.writeFile("text2.txt", url, () => {
+
+            });
+
+        });
+
         // This method will be called when Electron has finished
         // initialization and is ready to create browser windows.
         // Some APIs can only be used after this event occurs.
@@ -179,13 +203,17 @@ export = {
             }
         });
 
-        // Register protocol on app
-        app.setAsDefaultProtocolClient("cottontail");
-        app.on("open-url", function (event, url) {
-            const encoded = url.replace("cottontail://", "");
-            const data = magnetLinkController.setMagnetLinkData(encoded);
-            magnetLinkProxy.pass(data);
-        });
+        // // Register protocol on app
+        // app.setAsDefaultProtocolClient("cottontail");
+        // app.on("open-url", function (event, url) {
+        //     const encoded = url.replace("cottontail://", "");
+        //     const data = magnetLinkController.setMagnetLinkData(encoded);
+        //     magnetLinkProxy.pass(data);
+        // });
+        //
+        // app.setAsDefaultProtocolClient("cottontail");
+
+
     }
 }
 

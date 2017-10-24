@@ -16,7 +16,11 @@ export class MagnetLinkService {
 
     openLinkStream = new Subject<any>();
 
+    openLocalFileStream = new Subject<any>();
+
     openingLinkInProgress = false;
+
+    openingLocalInProgress = false;
 
     constructor(workbox: WorkboxService, platform: PlatformRepositoryService, auth: AuthService, ipc: IpcService,
                 modalService: ModalService, global: GlobalService) {
@@ -108,8 +112,28 @@ export class MagnetLinkService {
 
         });
 
+        // this.openLocalFileStream.filter((a) => !!a).subscribe((path) => {
+        //     if (this.openingLinkInProgress) {
+        //         return;
+        //     }
+        //
+        //     this.openingLinkInProgress = true;
+        //
+        //     const appId = path;
+        //
+        //     const tab = workbox.getOrCreateAppTab({
+        //         id: appId,
+        //         isWritable: true,
+        //         type: "file"
+        //     });
+        //
+        //     workbox.openTab(tab);
+        //
+        // });
+
+
         ipc.watch("magnetLink").filter((a) => !!a).subscribe((data) => {
-            this.openLinkStream.next(data);
+            this.openLocalFileStream.next(data);
         });
 
     }
