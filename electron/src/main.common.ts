@@ -22,6 +22,7 @@ const router = require("./ipc-router");
 
 let win;
 let splash;
+let deeplinkingUrl;
 
 function start(config: { devTools: boolean, url: string }) {
     router.start();
@@ -39,19 +40,9 @@ function start(config: { devTools: boolean, url: string }) {
         splash.show();
     });
 
-    const content = process.argv.join("|");
+    deeplinkingUrl = process.argv.slice(1);
 
-    fs.writeFile("/Users/marijanlekic/textMAXI.rtf", content, () => {
-
-    }, (e3) => {
-
-    });
-
-    fs.writeFile("c:/fileTest.rtf", content, () => {
-
-    }, (e3) => {
-
-    });
+    logEverywhere("app.makeSingleInstance# " + deeplinkingUrl);
 
     splash.once("closed", () => {
         splash = undefined;
@@ -170,6 +161,34 @@ function start(config: { devTools: boolean, url: string }) {
 export = {
     start: (config) => {
 
+        const shouldQuit = app.makeSingleInstance((argv, workingDirectory) => {
+            // Someone tried to run a second instance, we should focus our window.
+
+            // Protocol handler for win32
+            // argv: An array of the second instance’s (command line / deep linked) arguments
+            if (process.platform === "win32") {
+                // Keep only command line / deep linked arguments
+                deeplinkingUrl = argv.slice(1)
+            }
+
+            debugger;
+
+            const data = magnetLinkController.setMagnetLinkData("votevr");
+            magnetLinkProxy.pass(data);
+
+            if (win) {
+                if (win.isMinimized()) {
+                    win.restore()
+                };
+
+                win.focus()
+            }
+        });
+        if (shouldQuit) {
+            app.quit();
+            return
+        }
+
         app.on("open-file", function (event, url) {
 
             // magnetLinkProxy.pass(url);
@@ -203,17 +222,23 @@ export = {
             }
         });
 
-        // // Register protocol on app
-        // app.setAsDefaultProtocolClient("cottontail");
-        // app.on("open-url", function (event, url) {
-        //     const encoded = url.replace("cottontail://", "");
-        //     const data = magnetLinkController.setMagnetLinkData(encoded);
-        //     magnetLinkProxy.pass(data);
-        // });
-        //
-        // app.setAsDefaultProtocolClient("cottontail");
+        // Register protocol on app
+        app.setAsDefaultProtocolClient("cottontail");
+        app.on("open-url", function (event, url) {
+            const encoded = url.replace("cottontail://", "");
+            const data = magnetLinkController.setMagnetLinkData(encoded);
+            magnetLinkProxy.pass(data);
+        });
 
+        app.setAsDefaultProtocolClient("cottontail");
 
+    }
+}
+
+function logEverywhere(s) {
+    console.log(s)
+    if (win && win.webContents) {
+        win.webContents.executeJavaScript(`console.log("${s}")`)
     }
 }
 

@@ -112,27 +112,28 @@ export class MagnetLinkService {
 
         });
 
-        // this.openLocalFileStream.filter((a) => !!a).subscribe((path) => {
-        //     if (this.openingLinkInProgress) {
-        //         return;
-        //     }
-        //
-        //     this.openingLinkInProgress = true;
-        //
-        //     const appId = path;
-        //
-        //     const tab = workbox.getOrCreateAppTab({
-        //         id: appId,
-        //         isWritable: true,
-        //         type: "file"
-        //     });
-        //
-        //     workbox.openTab(tab);
-        //
-        // });
+        this.openLocalFileStream.filter((a) => !!a).subscribe((path) => {
+            // if (this.openingLinkInProgress) {
+            //     return;
+            // }
+            //
+            // this.openingLinkInProgress = true;
+            //
+            // const appId = path;
+            //
+            // const tab = workbox.getOrCreateAppTab({
+            //     id: appId,
+            //     isWritable: true,
+            //     type: "file"
+            // });
+            //
+            // workbox.openTab(tab);
+
+        });
 
 
         ipc.watch("magnetLink").filter((a) => !!a).subscribe((data) => {
+            debugger;
             this.openLocalFileStream.next(data);
         });
 
