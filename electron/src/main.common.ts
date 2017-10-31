@@ -40,9 +40,6 @@ function start(config: { devTools: boolean, url: string }) {
         splash.show();
     });
 
-    deeplinkingUrl = process.argv.slice(1);
-
-
     splash.once("closed", () => {
         splash = undefined;
     });
@@ -157,39 +154,41 @@ function start(config: { devTools: boolean, url: string }) {
     ] as any[] /* types are not accurate for menu items */));
 }
 
+
+
 export = {
     start: (config) => {
 
-        // const shouldQuit = app.makeSingleInstance((argv, workingDirectory) => {
-        //     // Someone tried to run a second instance, we should focus our window.
-        //
-        //     // Protocol handler for win32
-        //     // argv: An array of the second instance’s (command line / deep linked) arguments
-        //     if (process.platform === "win32") {
-        //         // Keep only command line / deep linked arguments
-        //         deeplinkingUrl = argv.slice(1)
-        //     }
-        //
-        //     const data = magnetLinkController.setMagnetLinkData("votevr");
-        //     magnetLinkProxy.pass(data);
-        //
-        //     if (win) {
-        //         if (win.isMinimized()) {
-        //             win.restore()
-        //         };
-        //
-        //         win.focus()
-        //     }
-        // });
-        // if (shouldQuit) {
-        //     app.quit();
-        //     return
-        // }
-
+        // Open file handler for Mac
         app.on("open-file", function (event, url) {
-            magnetLinkProxy.pass(url);
-
+            const p = magnetLinkController.setLocalFile(url);
+            magnetLinkProxy.pass(p);
         });
+
+        // File/Protocol handler for Windows
+        const shouldQuit = app.makeSingleInstance((argv) => {
+            // Someone tried to run a second instance, we should focus our window.
+
+            // Protocol handler for win32
+            // argv: An array of the second instance’s (command line / deep linked) arguments
+            if (process.platform === "win32") {
+                // Keep only command line / deep linked arguments
+                const data = magnetLinkController.setLocalFile(argv.slice(1)[0]);
+                magnetLinkProxy.pass(data);
+            }
+
+            if (win) {
+                if (win.isMinimized()) {
+                    win.restore()
+                };
+
+                win.focus()
+            }
+        });
+        if (shouldQuit) {
+            app.quit();
+            return
+        }
 
         // This method will be called when Electron has finished
         // initialization and is ready to create browser windows.
@@ -215,13 +214,20 @@ export = {
             }
         });
 
-        // Register protocol on app
-        app.setAsDefaultProtocolClient("cottontail");
-        app.on("open-url", function (event, url) {
-            const encoded = url.replace("cottontail://", "");
-            const data = magnetLinkController.setMagnetLinkData(encoded);
-            magnetLinkProxy.pass(data);
-        });
+        // // Protocol handler for Mac
+        // app.setAsDefaultProtocolClient("cottontail");
+        // app.on("open-url", function (event, url) {
+        //     const encoded = url.replace("cottontail://", "");
+        //     const data = magnetLinkController.setMagnetLinkData(encoded);
+        //     magnetLinkProxy.pass(data);
+        // });
+
+        // Initial File handler for Windows
+
+        const argument = process.argv.slice(1);
+        if (process.platform === "win32" && argument.length === 1) {
+            magnetLinkController.setLocalFile(argument[0]);
+        }
 
     }
 }

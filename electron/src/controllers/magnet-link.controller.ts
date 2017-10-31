@@ -1,7 +1,7 @@
 import * as magnetLinkProxy from "../magnet-link-proxy";
 
 let magnetLinkData;
-let localFile;
+let localPath;
 
 module.exports = {
     register: (callback) => {
@@ -12,22 +12,29 @@ module.exports = {
         if (magnetLinkData) {
             callback(null, magnetLinkData);
         }
+
+
+        if (localPath) {
+            callback(null, localPath);
+        }
     },
 
     setMagnetLinkData: (encoded: string) => {
-        const decoded = (new Buffer(encoded, "base64")).toString();
+        return new Promise((resolve, reject) => {
+            const decoded = (new Buffer(encoded, "base64")).toString();
 
-        try {
-            magnetLinkData = JSON.parse(decoded);
-        } catch (e) {
-            magnetLinkData = null;
-        }
-
-        return magnetLinkData;
+            try {
+                magnetLinkData = JSON.parse(decoded);
+                resolve(magnetLinkData);
+            } catch (e) {
+                magnetLinkData = null;
+                reject();
+            }
+        });
     },
 
     setLocalFile: (path: string) => {
-        localFile = path;
-        return localFile;
+        localPath = path;
+        return localPath;
     }
 };
