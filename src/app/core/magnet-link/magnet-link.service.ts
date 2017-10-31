@@ -112,28 +112,29 @@ export class MagnetLinkService {
 
         });
 
-        this.openLocalFileStream.filter((a) => !!a).subscribe((path) => {
-            // if (this.openingLinkInProgress) {
-            //     return;
-            // }
-            //
-            // this.openingLinkInProgress = true;
-            //
-            // const appId = path;
-            //
-            // const tab = workbox.getOrCreateAppTab({
-            //     id: appId,
-            //     isWritable: true,
-            //     type: "file"
-            // });
-            //
-            // workbox.openTab(tab);
 
-        });
+        this.openLocalFileStream.filter((a) => !!a).switchMap((path) => {
+            return ipc.request("getFileOutputInfo", path);
+        }).subscribe((fsEntry) => {
+
+            const id    = fsEntry.path;
+            const label = AppHelper.getBasename(fsEntry.path);
 
 
+            const tab = workbox.getOrCreateAppTab({
+                id,
+                language: fsEntry.language,
+                isWritable: fsEntry.isWritable,
+                type: fsEntry.type || "Code",
+                label
+            });
+
+            workbox.openTab(tab);
+
+        }, () => {});
+
+        //
         ipc.watch("magnetLink").filter((a) => !!a).subscribe((data) => {
-            debugger;
             this.openLocalFileStream.next(data);
         });
 

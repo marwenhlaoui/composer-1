@@ -42,7 +42,6 @@ function start(config: { devTools: boolean, url: string }) {
 
     deeplinkingUrl = process.argv.slice(1);
 
-    logEverywhere("app.makeSingleInstance# " + deeplinkingUrl);
 
     splash.once("closed", () => {
         splash = undefined;
@@ -161,40 +160,34 @@ function start(config: { devTools: boolean, url: string }) {
 export = {
     start: (config) => {
 
-        const shouldQuit = app.makeSingleInstance((argv, workingDirectory) => {
-            // Someone tried to run a second instance, we should focus our window.
-
-            // Protocol handler for win32
-            // argv: An array of the second instance’s (command line / deep linked) arguments
-            if (process.platform === "win32") {
-                // Keep only command line / deep linked arguments
-                deeplinkingUrl = argv.slice(1)
-            }
-
-            debugger;
-
-            const data = magnetLinkController.setMagnetLinkData("votevr");
-            magnetLinkProxy.pass(data);
-
-            if (win) {
-                if (win.isMinimized()) {
-                    win.restore()
-                };
-
-                win.focus()
-            }
-        });
-        if (shouldQuit) {
-            app.quit();
-            return
-        }
+        // const shouldQuit = app.makeSingleInstance((argv, workingDirectory) => {
+        //     // Someone tried to run a second instance, we should focus our window.
+        //
+        //     // Protocol handler for win32
+        //     // argv: An array of the second instance’s (command line / deep linked) arguments
+        //     if (process.platform === "win32") {
+        //         // Keep only command line / deep linked arguments
+        //         deeplinkingUrl = argv.slice(1)
+        //     }
+        //
+        //     const data = magnetLinkController.setMagnetLinkData("votevr");
+        //     magnetLinkProxy.pass(data);
+        //
+        //     if (win) {
+        //         if (win.isMinimized()) {
+        //             win.restore()
+        //         };
+        //
+        //         win.focus()
+        //     }
+        // });
+        // if (shouldQuit) {
+        //     app.quit();
+        //     return
+        // }
 
         app.on("open-file", function (event, url) {
-
-            // magnetLinkProxy.pass(url);
-            fs.writeFile("text2.txt", url, () => {
-
-            });
+            magnetLinkProxy.pass(url);
 
         });
 
@@ -230,18 +223,8 @@ export = {
             magnetLinkProxy.pass(data);
         });
 
-        app.setAsDefaultProtocolClient("cottontail");
-
     }
 }
-
-function logEverywhere(s) {
-    console.log(s)
-    if (win && win.webContents) {
-        win.webContents.executeJavaScript(`console.log("${s}")`)
-    }
-}
-
 
 /**
  * If we are running functional tests with spectron, we need to expose more of the app to

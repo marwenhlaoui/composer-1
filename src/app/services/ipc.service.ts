@@ -20,6 +20,7 @@ export type IPCRoute =
     | "fetchPlatformData"
     | "getApps"
     | "getAppUpdates"
+    | "getFileOutputInfo"
     | "getLocalFileContent"
     | "getLocalRepository"
     | "getPlatformApp"
@@ -161,7 +162,7 @@ export class IpcService {
                 });
 
                 msgSubscription.unsubscribe();
-            }
+            };
         });
 
         return clientObservable;

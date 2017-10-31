@@ -73,6 +73,10 @@ export function readFileContent(path, callback) {
     fsController.readFileContent(path, callback);
 }
 
+export function getFileOutputInfo(path, callback) {
+    fsController.getFileOutputInfo(path, callback);
+}
+
 export function deletePath(path, callback) {
     fsController.deletePath(path, callback);
 }
