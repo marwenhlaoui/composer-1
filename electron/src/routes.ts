@@ -16,7 +16,9 @@ const swapController = new SwapController(swapPath);
 
 const fsController          = require("./controllers/fs.controller");
 const acceleratorController = require("./controllers/accelerator.controller");
-const magnetLinkController  = require("./controllers/magnet-link.controller");
+const deepLinkingController  = require("./controllers/open-external-file/deep-linking-controller");
+const localFileController = require("./controllers/open-external-file/local-file-controller");
+
 const resolver              = require("./schema-salad-resolver/schema-salad-resolver");
 const semver                = require("semver");
 
@@ -125,7 +127,11 @@ export function searchLocalProjects(data: { term: string, limit: number, folders
 }
 
 export function magnetLink(data, callback) {
-    magnetLinkController.register(callback);
+    deepLinkingController.register(callback);
+}
+
+export function externalFile(data, callback) {
+    localFileController.register(callback);
 }
 
 export function getProject(projectSlug: string, callback) {

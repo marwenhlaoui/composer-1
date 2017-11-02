@@ -113,8 +113,10 @@ export class MagnetLinkService {
         });
 
 
-        this.openLocalFileStream.filter((a) => !!a).switchMap((path) => {
-            return ipc.request("getFileOutputInfo", path);
+        this.openLocalFileStream.filter((a) => !!a).flatMap((path) => {
+            return Observable.from(path).flatMap((p) => {
+                return ipc.request("getFileOutputInfo", p);
+            });
         }).subscribe((fsEntry) => {
 
             const id    = fsEntry.path;
@@ -133,8 +135,11 @@ export class MagnetLinkService {
 
         }, () => {});
 
-        //
         ipc.watch("magnetLink").filter((a) => !!a).subscribe((data) => {
+            this.openLinkStream.next(data);
+        });
+
+        ipc.watch("externalFile").filter((a) => !!a).subscribe((data) => {
             this.openLocalFileStream.next(data);
         });
 

@@ -56,7 +56,8 @@ export type IPCListeners =
     "watchUserRepository" |
     "executeApp" |
     "accelerator" |
-    "magnetLink";
+    "magnetLink" |
+    "externalFile";
 
 @Injectable()
 export class IpcService {

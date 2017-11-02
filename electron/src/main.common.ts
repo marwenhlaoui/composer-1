@@ -1,11 +1,14 @@
 import * as mock from "mock-require";
 import * as acceleratorProxy from "./accelerator-proxy";
-import * as magnetLinkProxy from "./magnet-link-proxy";
+import * as magnetLinkProxy from "./open-external-file-proxy";
 import * as path from "path";
 import * as fs from "fs";
 
 const {app, Menu, BrowserWindow} = require("electron");
-const magnetLinkController       = require("./controllers/magnet-link.controller");
+const deepLinkingController       = require("./controllers/open-external-file/deep-linking-controller");
+const localFileController     = require("./controllers/open-external-file/local-file-controller");
+
+const proxy = require("./open-external-file-proxy");
 
 const isSpectronRun       = ~process.argv.indexOf("--spectron");
 const defaultUserDataPath = app.getPath("home") + path.sep + ".sevenbridges/rabix-composer";
@@ -161,8 +164,9 @@ export = {
 
         // Open file handler for Mac
         app.on("open-file", function (event, url) {
-            const p = magnetLinkController.setLocalFile(url);
-            magnetLinkProxy.pass(p);
+            logEverywhere(url);
+
+            external(url);
         });
 
         // File/Protocol handler for Windows
@@ -173,14 +177,17 @@ export = {
             // argv: An array of the second instance’s (command line / deep linked) arguments
             if (process.platform === "win32") {
                 // Keep only command line / deep linked arguments
-                const data = magnetLinkController.setLocalFile(argv.slice(1)[0]);
-                magnetLinkProxy.pass(data);
+
+                argv.slice(1).forEach((a) => {
+                    external(a);
+                });
+
             }
 
             if (win) {
                 if (win.isMinimized()) {
                     win.restore()
-                };
+                }
 
                 win.focus()
             }
@@ -214,21 +221,43 @@ export = {
             }
         });
 
-        // // Protocol handler for Mac
-        // app.setAsDefaultProtocolClient("cottontail");
-        // app.on("open-url", function (event, url) {
-        //     const encoded = url.replace("cottontail://", "");
-        //     const data = magnetLinkController.setMagnetLinkData(encoded);
-        //     magnetLinkProxy.pass(data);
-        // });
+        // Protocol handler for Mac
+        app.setAsDefaultProtocolClient("cottontail");
+        app.on("open-url", function (event, url) {
+            external(url);
+        });
 
         // Initial File handler for Windows
 
         const argument = process.argv.slice(1);
         if (process.platform === "win32" && argument.length === 1) {
-            magnetLinkController.setLocalFile(argument[0]);
+            argument.forEach((a) => {
+                deepLinkingController.setLocalFile(a);
+            });
         }
 
+    }
+}
+
+function external(arg: string) {
+    if (!arg) {
+        return;
+    }
+
+    if (arg.startsWith("cottontail://")) {
+        const encoded = arg.replace("cottontail://", "");
+        const data = deepLinkingController.setMagnetLinkData(encoded);
+        proxy.passMagnetLink(data);
+    } else {
+        const data = localFileController.setLocalFile(arg);
+        proxy.passLocalFile([data]);
+    }
+}
+
+function logEverywhere(s) {
+    console.log(s);
+    if (win && win.webContents) {
+        win.webContents.executeJavaScript(`console.log("${s}")`)
     }
 }
 
