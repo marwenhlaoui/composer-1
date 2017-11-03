@@ -1,22 +1,28 @@
 import * as magnetLinkProxy from "../../open-external-file-proxy";
 
-let localFiles: string [] = [];
+const localFiles: string [] = [];
+let registered = false;
 
 module.exports = {
     register: (callback) => {
-        magnetLinkProxy.onLocalFileOpen( (url) => {
+        magnetLinkProxy.onLocalFileOpen((url) => {
             callback(null, url);
         });
 
-        if (localFiles) {
-            callback(null, localFiles);
+        if (localFiles.length) {
+            localFiles.forEach((l) => {
+                callback(null, l);
+            });
+
+            localFiles.length = 0;
         }
     },
 
     setLocalFile: (paths: string) => {
-
-        localFiles.push(paths);
+        if (!registered) {
+            localFiles.push(paths);
+        }
 
         return paths;
-    }
+    },
 };

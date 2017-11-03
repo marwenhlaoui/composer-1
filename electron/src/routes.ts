@@ -126,11 +126,11 @@ export function searchLocalProjects(data: { term: string, limit: number, folders
     }).catch(callback);
 }
 
-export function magnetLink(data, callback) {
+export function deepLinking(data, callback) {
     deepLinkingController.register(callback);
 }
 
-export function externalFile(data, callback) {
+export function openLocalFile(data, callback) {
     localFileController.register(callback);
 }
 

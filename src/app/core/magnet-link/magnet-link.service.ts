@@ -1,5 +1,4 @@
 import {Injectable} from "@angular/core";
-import {Subject} from "rxjs/Subject";
 import {WorkboxService} from "../workbox/workbox.service";
 import {PlatformRepositoryService} from "../../repository/platform-repository.service";
 import {AuthService} from "../../auth/auth.service";
@@ -10,28 +9,24 @@ import {AuthCredentials} from "../../auth/model/auth-credentials";
 import {ModalService} from "../../ui/modal/modal.service";
 import {PlatformCredentialsModalComponent} from "../modals/platform-credentials-modal/platform-credentials-modal.component";
 import {GlobalService} from "../global/global.service";
+import {NotificationBarService} from "../../layout/notification-bar/notification-bar.service";
 
 @Injectable()
 export class MagnetLinkService {
 
-    openLinkStream = new Subject<any>();
-
-    openLocalFileStream = new Subject<any>();
-
-    openingLinkInProgress = false;
-
-    openingLocalInProgress = false;
+    openingMagnetLinkInProgress = false;
 
     constructor(workbox: WorkboxService, platform: PlatformRepositoryService, auth: AuthService, ipc: IpcService,
-                modalService: ModalService, global: GlobalService) {
+                modalService: ModalService, global: GlobalService, notificationBar: NotificationBarService) {
 
-        this.openLinkStream.subscribe((data) => {
+        // Deep linking (opening magnet link)
+        ipc.watch("deepLinking").filter((a) => !!a).subscribe((data) => {
 
-            if (this.openingLinkInProgress) {
+            if (this.openingMagnetLinkInProgress || !(data.username && data.id && data.url)) {
                 return;
             }
 
-            this.openingLinkInProgress = true;
+            this.openingMagnetLinkInProgress = true;
 
             const username = data.username;
             const appId = data.id;
@@ -80,16 +75,23 @@ export class MagnetLinkService {
                     return a.user.username === username && a.url === url;
                 }).take(1);
             }).switchMap(() => {
-                return Observable.combineLatest(platform.getApp(appId), platform.getProject(projectSlug));
-            }).switchMap((combined) => {
+                return Observable.combineLatest(platform.getApp(appId), platform.getProject(projectSlug)).catch(() => {
+
+                    notificationBar.showNotification("Cannot open magnet link for app: " + appId, {
+                        type: "error"
+                    });
+
+                    return Observable.empty();
+                });
+            }).switchMap((combined: Array<any>) => {
                 const [app, project] = combined;
                 if (!isPublic) {
                     return Observable.fromPromise(platform.addOpenProjects([project.id], true));
                 }
             }, res => res)
-                .subscribe((combined) => {
+                .subscribe((combined: Array<any>) => {
 
-                    this.openingLinkInProgress = false;
+                    this.openingMagnetLinkInProgress = false;
 
                     const [app, project] = combined;
                     const writable = project.permissions.write;
@@ -105,23 +107,28 @@ export class MagnetLinkService {
                     workbox.openTab(tab);
 
                 }, () => {
-                    this.openingLinkInProgress = false;
+                    this.openingMagnetLinkInProgress = false;
                 }, () => {
-                    this.openingLinkInProgress = false;
+                    this.openingMagnetLinkInProgress = false;
                 });
 
         });
 
+        // Opening local file (double clicking on a file or by using Open with method...)
+        ipc.watch("openLocalFile").filter((a) => !!a).flatMap((path) => {
+            return ipc.request("getFileOutputInfo", path)
+                .catch(() => {
 
-        this.openLocalFileStream.filter((a) => !!a).flatMap((path) => {
-            return Observable.from(path).flatMap((p) => {
-                return ipc.request("getFileOutputInfo", p);
-            });
+                    notificationBar.showNotification("Cannot open file path: " + path, {
+                        type: "error"
+                    });
+
+                    return Observable.empty();
+                });
         }).subscribe((fsEntry) => {
 
-            const id    = fsEntry.path;
+            const id = fsEntry.path;
             const label = AppHelper.getBasename(fsEntry.path);
-
 
             const tab = workbox.getOrCreateAppTab({
                 id,
@@ -133,14 +140,6 @@ export class MagnetLinkService {
 
             workbox.openTab(tab);
 
-        }, () => {});
-
-        ipc.watch("magnetLink").filter((a) => !!a).subscribe((data) => {
-            this.openLinkStream.next(data);
-        });
-
-        ipc.watch("externalFile").filter((a) => !!a).subscribe((data) => {
-            this.openLocalFileStream.next(data);
         });
 
     }

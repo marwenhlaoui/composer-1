@@ -5,12 +5,12 @@ import * as path from "path";
 import * as fs from "fs";
 
 const {app, Menu, BrowserWindow} = require("electron");
-const deepLinkingController       = require("./controllers/open-external-file/deep-linking-controller");
-const localFileController     = require("./controllers/open-external-file/local-file-controller");
+const deepLinkingController = require("./controllers/open-external-file/deep-linking-controller");
+const localFileController = require("./controllers/open-external-file/local-file-controller");
 
 const proxy = require("./open-external-file-proxy");
 
-const isSpectronRun       = ~process.argv.indexOf("--spectron");
+const isSpectronRun = ~process.argv.indexOf("--spectron");
 const defaultUserDataPath = app.getPath("home") + path.sep + ".sevenbridges/rabix-composer";
 
 app.setPath("userData", defaultUserDataPath);
@@ -23,9 +23,8 @@ applyCLIArgs();
 
 const router = require("./ipc-router");
 
-let win;
+let win = null;
 let splash;
-let deeplinkingUrl;
 
 function start(config: { devTools: boolean, url: string }) {
     router.start();
@@ -66,7 +65,7 @@ function start(config: { devTools: boolean, url: string }) {
     }
 
     win.on("closed", () => {
-        win = undefined;
+        win = null;
     });
 
 
@@ -158,18 +157,28 @@ function start(config: { devTools: boolean, url: string }) {
 }
 
 
-
 export = {
     start: (config) => {
 
-        // Open file handler for Mac
-        app.on("open-file", function (event, url) {
-            logEverywhere(url);
-
-            external(url);
+        // Protocol handler for darwin
+        app.setAsDefaultProtocolClient("cottontail");
+        app.on("open-url", function (event, url) {
+            openExternalFiles(url);
+            focusMainWindow();
         });
 
-        // File/Protocol handler for Windows
+        // File handler for darwin
+        app.on("open-file", function (event, filePath) {
+            openExternalFiles(filePath);
+            focusMainWindow();
+        });
+
+        // Initial File handler for win32
+        if (process.platform === "win32") {
+            openExternalFiles(...process.argv.slice(1));
+        }
+
+        // File/Protocol handler for win32
         const shouldQuit = app.makeSingleInstance((argv) => {
             // Someone tried to run a second instance, we should focus our window.
 
@@ -177,20 +186,10 @@ export = {
             // argv: An array of the second instance’s (command line / deep linked) arguments
             if (process.platform === "win32") {
                 // Keep only command line / deep linked arguments
-
-                argv.slice(1).forEach((a) => {
-                    external(a);
-                });
-
+                openExternalFiles(...argv.slice(1));
             }
 
-            if (win) {
-                if (win.isMinimized()) {
-                    win.restore()
-                }
-
-                win.focus()
-            }
+            focusMainWindow();
         });
         if (shouldQuit) {
             app.quit();
@@ -207,9 +206,11 @@ export = {
 
             // On macOS it is common for applications and their menu bar
             // to stay active until the user quits explicitly with Cmd + Q
-            if (process.platform !== "darwin") {
-                app.quit();
-            }
+            // if (process.platform !== "darwin") {
+            //     app.quit();
+            // }
+
+            app.quit();
 
         });
 
@@ -221,43 +222,31 @@ export = {
             }
         });
 
-        // Protocol handler for Mac
-        app.setAsDefaultProtocolClient("cottontail");
-        app.on("open-url", function (event, url) {
-            external(url);
-        });
+    }
+}
 
-        // Initial File handler for Windows
+function openExternalFiles(...args: string[]) {
+    args.forEach((item) => {
+       if (item.startsWith("cottontail://")) {
+           const encoded = item.replace("cottontail://", "");
+           const data = deepLinkingController.setMagnetLinkData(encoded);
+           proxy.passMagnetLink(data);
+       } else {
+           const filePath = localFileController.setLocalFile(item);
+           proxy.passLocalFile(filePath);
+       }
+    });
+}
 
-        const argument = process.argv.slice(1);
-        if (process.platform === "win32" && argument.length === 1) {
-            argument.forEach((a) => {
-                deepLinkingController.setLocalFile(a);
-            });
+/**
+ * Focus main window
+ */
+function focusMainWindow() {
+    if (win) {
+        if (win.isMinimized()) {
+            win.restore()
         }
-
-    }
-}
-
-function external(arg: string) {
-    if (!arg) {
-        return;
-    }
-
-    if (arg.startsWith("cottontail://")) {
-        const encoded = arg.replace("cottontail://", "");
-        const data = deepLinkingController.setMagnetLinkData(encoded);
-        proxy.passMagnetLink(data);
-    } else {
-        const data = localFileController.setLocalFile(arg);
-        proxy.passLocalFile([data]);
-    }
-}
-
-function logEverywhere(s) {
-    console.log(s);
-    if (win && win.webContents) {
-        win.webContents.executeJavaScript(`console.log("${s}")`)
+        win.focus()
     }
 }
 

@@ -56,8 +56,8 @@ export type IPCListeners =
     "watchUserRepository" |
     "executeApp" |
     "accelerator" |
-    "magnetLink" |
-    "externalFile";
+    "deepLinking" |
+    "openLocalFile";
 
 @Injectable()
 export class IpcService {
