@@ -19,17 +19,16 @@ export class MagnetLinkService {
     constructor(workbox: WorkboxService, platform: PlatformRepositoryService, auth: AuthService, ipc: IpcService,
                 modalService: ModalService, global: GlobalService, notificationBar: NotificationBarService) {
 
-        // Deep linking (opening magnet link)
-        ipc.watch("deepLinking").filter((a) => !!a).subscribe((data) => {
+        ipc.watch("deepLinkingProtocol").filter((a) => !!a).subscribe((data) => {
 
-            if (this.openingMagnetLinkInProgress || !(data.username && data.id && data.url)) {
+            if (this.openingMagnetLinkInProgress || !(data.username && data.appId && data.url)) {
                 return;
             }
 
             this.openingMagnetLinkInProgress = true;
 
             const username = data.username;
-            const appId = data.id;
+            const appId = data.appId;
             const url = data.url;
             const isPublic = data.isPublicApp || false;
 
@@ -75,11 +74,13 @@ export class MagnetLinkService {
                     return a.user.username === username && a.url === url;
                 }).take(1);
             }).switchMap(() => {
-                return Observable.combineLatest(platform.getApp(appId), platform.getProject(projectSlug)).catch(() => {
+                return Observable.combineLatest(platform.getApp(appId), platform.getProject(projectSlug)).catch((e) => {
 
-                    notificationBar.showNotification("Cannot open magnet link for app: " + appId, {
+                    notificationBar.showNotification(`"${appId}" cannot be opened using magnet link.`, {
                         type: "error"
                     });
+
+                    console.warn("Platform app cannot be open using magnet link", e);
 
                     return Observable.empty();
                 });
@@ -115,13 +116,14 @@ export class MagnetLinkService {
         });
 
         // Opening local file (double clicking on a file or by using Open with method...)
-        ipc.watch("openLocalFile").filter((a) => !!a).flatMap((path) => {
+        ipc.watch("openFileHandler").filter((a) => !!a).flatMap((path) => {
             return ipc.request("getFileOutputInfo", path)
-                .catch(() => {
-
-                    notificationBar.showNotification("Cannot open file path: " + path, {
+                .catch((e) => {
+                    notificationBar.showNotification(`"${path}" cannot be opened.`, {
                         type: "error"
                     });
+
+                    console.warn("File cannot be open using file protocol", e);
 
                     return Observable.empty();
                 });

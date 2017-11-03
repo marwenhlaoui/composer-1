@@ -59,9 +59,9 @@ builder.build({
             buildResources: "build-resources"
         },
         protocols: [{
-            "name": "cottontail",
+            "name": "cottontail2",
             "role": "Viewer",
-            "schemes": ["cottontail"]
+            "schemes": ["cottontail2"]
         }],
         mac: {
             target: ["zip", "dir", "dmg"]

@@ -5,8 +5,8 @@ import * as path from "path";
 import * as fs from "fs";
 
 const {app, Menu, BrowserWindow} = require("electron");
-const deepLinkingController = require("./controllers/open-external-file/deep-linking-controller");
-const localFileController = require("./controllers/open-external-file/local-file-controller");
+const deepLinkingController = require("./controllers/open-external-file/deep-linking-protocol-controller");
+const localFileController = require("./controllers/open-external-file/open-file-handler-controller");
 
 const proxy = require("./open-external-file-proxy");
 
@@ -161,7 +161,7 @@ export = {
     start: (config) => {
 
         // Protocol handler for darwin
-        app.setAsDefaultProtocolClient("cottontail");
+        app.setAsDefaultProtocolClient("cottontail2");
         app.on("open-url", function (event, url) {
             openExternalFiles(url);
             focusMainWindow();
@@ -175,7 +175,7 @@ export = {
 
         // Initial File handler for win32
         if (process.platform === "win32") {
-            openExternalFiles(...process.argv.slice(1));
+            openExternalFiles(...getFilePaths(process.argv.slice(1)));
         }
 
         // File/Protocol handler for win32
@@ -186,11 +186,12 @@ export = {
             // argv: An array of the second instance’s (command line / deep linked) arguments
             if (process.platform === "win32") {
                 // Keep only command line / deep linked arguments
-                openExternalFiles(...argv.slice(1));
+                openExternalFiles(...getFilePaths(process.argv.slice(1)));
             }
 
             focusMainWindow();
         });
+
         if (shouldQuit) {
             app.quit();
             return
@@ -225,18 +226,36 @@ export = {
     }
 }
 
-function openExternalFiles(...args: string[]) {
-    args.forEach((item) => {
-       if (item.startsWith("cottontail://")) {
-           const encoded = item.replace("cottontail://", "");
-           const data = deepLinkingController.setMagnetLinkData(encoded);
-           proxy.passMagnetLink(data);
-       } else {
-           const filePath = localFileController.setLocalFile(item);
-           proxy.passLocalFile(filePath);
-       }
+/**
+ * Open external files (using deep linking or file protocol)
+ */
+function openExternalFiles(...items: string[]) {
+    items.forEach((item) => {
+        if (item.startsWith("cottontail2://")) {
+            const encoded = item.replace("cottontail2://", "");
+            const data = deepLinkingController.setMagnetLinkData(encoded);
+            proxy.passMagnetLink(data);
+        } else {
+            const filePath = localFileController.setLocalFilePath(item);
+            proxy.passFilePath(filePath);
+        }
     });
 }
+
+/**
+ * Filter command line arguments to get file paths
+ */
+function getFilePaths(args: string []) {
+    // If dev mode do not use first argument as a file path
+    const devMode = process.argv.find(arg => arg.startsWith("--devMode"));
+
+    return args.filter((arg, index) => {
+        if (arg.startsWith("-") || (devMode && index === 0)) {
+            return false;
+        }
+    });
+}
+
 
 /**
  * Focus main window

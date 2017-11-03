@@ -1,24 +1,24 @@
-const registryMagnetLink: Function[] = [];
-const registryLocalFile: Function[] = [];
+const magnetLinks: Function[] = [];
+const filePaths: Function[] = [];
 
 export function onMagnetLinkOpen(callback) {
-    registryMagnetLink.push(callback);
+    magnetLinks.push(callback);
 }
 
-export function onLocalFileOpen(callback) {
-    registryLocalFile.push(callback);
+export function onFilePathOpen(callback) {
+    filePaths.push(callback);
 }
 
 export function passMagnetLink(url) {
-    registryMagnetLink.forEach(callback => {
+    magnetLinks.forEach(callback => {
         if (typeof callback === "function") {
             callback(url);
         }
     });
 }
 
-export function passLocalFile(path) {
-    registryLocalFile.forEach(callback => {
+export function passFilePath(path) {
+    filePaths.forEach(callback => {
         if (typeof callback === "function") {
             callback(path);
         }

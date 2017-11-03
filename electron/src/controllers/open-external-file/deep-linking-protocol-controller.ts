@@ -1,22 +1,22 @@
-import * as magnetLinkProxy from "../../open-external-file-proxy";
+import * as openExternalFileProxy from "../../open-external-file-proxy";
 
 let deepLinkingURL;
 
 module.exports = {
     register: (callback) => {
-        magnetLinkProxy.onMagnetLinkOpen( (url) => {
+        openExternalFileProxy.onMagnetLinkOpen((url) => {
             callback(null, url);
         });
 
         if (deepLinkingURL) {
             callback(null, deepLinkingURL);
+            deepLinkingURL = null;
         }
     },
 
     setMagnetLinkData: (encoded: string) => {
-        const decoded = (new Buffer(encoded, "base64")).toString();
-
         try {
+            const decoded = (new Buffer(encoded, "base64")).toString();
             deepLinkingURL = JSON.parse(decoded);
         } catch (e) {
             deepLinkingURL = null;

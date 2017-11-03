@@ -16,8 +16,9 @@ const swapController = new SwapController(swapPath);
 
 const fsController          = require("./controllers/fs.controller");
 const acceleratorController = require("./controllers/accelerator.controller");
-const deepLinkingController  = require("./controllers/open-external-file/deep-linking-controller");
-const localFileController = require("./controllers/open-external-file/local-file-controller");
+
+const deepLinkingProtocolController  = require("./controllers/open-external-file/deep-linking-protocol-controller");
+const openFileHandlerController = require("./controllers/open-external-file/open-file-handler-controller");
 
 const resolver              = require("./schema-salad-resolver/schema-salad-resolver");
 const semver                = require("semver");
@@ -126,12 +127,12 @@ export function searchLocalProjects(data: { term: string, limit: number, folders
     }).catch(callback);
 }
 
-export function deepLinking(data, callback) {
-    deepLinkingController.register(callback);
+export function deepLinkingProtocol(data, callback) {
+    deepLinkingProtocolController.register(callback);
 }
 
-export function openLocalFile(data, callback) {
-    localFileController.register(callback);
+export function openFileHandler(data, callback) {
+    openFileHandlerController.register(callback);
 }
 
 export function getProject(projectSlug: string, callback) {
