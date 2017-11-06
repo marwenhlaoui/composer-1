@@ -127,7 +127,7 @@ export function searchLocalProjects(data: { term: string, limit: number, folders
     }).catch(callback);
 }
 
-export function deepLinkingProtocol(data, callback) {
+export function deepLinkingHandler(data, callback) {
     deepLinkingProtocolController.register(callback);
 }
 

@@ -247,13 +247,9 @@ function openExternalFiles(...items: string[]) {
  */
 function getFilePaths(args: string []) {
     // If dev mode do not use first argument as a file path
-    const devMode = process.argv.find(arg => arg.startsWith("--devMode"));
+    const devMode = process.argv.find(arg => arg.startsWith("--dev-mode"));
 
-    return args.filter((arg, index) => {
-        if (arg.startsWith("-") || (devMode && index === 0)) {
-            return false;
-        }
-    });
+    return args.filter((arg, index) => !(arg.startsWith("-") || (devMode && index === 0)));
 }
 
 

@@ -12,14 +12,14 @@ import {GlobalService} from "../global/global.service";
 import {NotificationBarService} from "../../layout/notification-bar/notification-bar.service";
 
 @Injectable()
-export class MagnetLinkService {
+export class OpenExternalFileService {
 
     openingMagnetLinkInProgress = false;
 
     constructor(workbox: WorkboxService, platform: PlatformRepositoryService, auth: AuthService, ipc: IpcService,
                 modalService: ModalService, global: GlobalService, notificationBar: NotificationBarService) {
 
-        ipc.watch("deepLinkingProtocol").filter((a) => !!a).subscribe((data) => {
+        ipc.watch("deepLinkingHandler").filter((a) => !!a).subscribe((data) => {
 
             if (this.openingMagnetLinkInProgress || !(data.username && data.appId && data.url)) {
                 return;
@@ -80,7 +80,7 @@ export class MagnetLinkService {
                         type: "error"
                     });
 
-                    console.warn("Platform app cannot be open using magnet link", e);
+                    console.warn(`"${appId}" cannot be opened using magnet link`, e);
 
                     return Observable.empty();
                 });
@@ -115,7 +115,7 @@ export class MagnetLinkService {
 
         });
 
-        // Opening local file (double clicking on a file or by using Open with method...)
+        // Opening local file (double clicking on a file or Open with...)
         ipc.watch("openFileHandler").filter((a) => !!a).flatMap((path) => {
             return ipc.request("getFileOutputInfo", path)
                 .catch((e) => {
@@ -123,7 +123,7 @@ export class MagnetLinkService {
                         type: "error"
                     });
 
-                    console.warn("File cannot be open using file protocol", e);
+                    console.warn(`"${path}" cannot be opened using file protocol`, e);
 
                     return Observable.empty();
                 });

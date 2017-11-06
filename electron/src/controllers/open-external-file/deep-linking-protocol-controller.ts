@@ -10,7 +10,6 @@ module.exports = {
 
         if (deepLinkingURL) {
             callback(null, deepLinkingURL);
-            deepLinkingURL = null;
         }
     },
 

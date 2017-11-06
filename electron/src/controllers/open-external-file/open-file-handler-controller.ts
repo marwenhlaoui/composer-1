@@ -1,20 +1,20 @@
-import * as magnetLinkProxy from "../../open-external-file-proxy";
+import * as openExternalFileProxy from "../../open-external-file-proxy";
 
-const filePaths: string [] = [];
+let filePaths: string [] = [];
 let callbackRegistered = false;
 
 module.exports = {
     register: (callback) => {
-        magnetLinkProxy.onFilePathOpen((url) => {
+        openExternalFileProxy.onFilePathOpen((url) => {
             callback(null, url);
         });
 
         if (filePaths.length) {
-            filePaths.forEach((l) => {
-                callback(null, l);
+            filePaths.forEach((path) => {
+                callback(null, path);
             });
 
-            filePaths.length = 0;
+            filePaths = null;
         }
 
         callbackRegistered = true;

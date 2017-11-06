@@ -56,7 +56,7 @@ export type IPCListeners =
     "watchUserRepository" |
     "executeApp" |
     "accelerator" |
-    "deepLinkingProtocol" |
+    "deepLinkingHandler" |
     "openFileHandler";
 
 @Injectable()
