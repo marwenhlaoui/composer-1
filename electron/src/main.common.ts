@@ -231,8 +231,8 @@ export = {
  */
 function openExternalFiles(...items: string[]) {
     items.forEach((item) => {
-        if (item.startsWith("cottontail2://")) {
-            const encoded = item.replace("cottontail2://", "");
+        if (item.startsWith("rabix-composer://")) {
+            const encoded = item.replace("rabix-composer://", "");
             const data = deepLinkingController.setMagnetLinkData(encoded);
             proxy.passMagnetLink(data);
         } else {

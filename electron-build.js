@@ -59,9 +59,9 @@ builder.build({
             buildResources: "build-resources"
         },
         protocols: [{
-            "name": "cottontail2",
+            "name": "rabix-composer",
             "role": "Viewer",
-            "schemes": ["cottontail2"]
+            "schemes": ["rabix-composer"]
         }],
         mac: {
             target: ["zip", "dir", "dmg"]
