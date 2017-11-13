@@ -8,13 +8,17 @@ import {AppQueryParams} from "./sbg-api-client/interfaces/queries";
 import {SBGClient} from "./sbg-api-client/sbg-client";
 import {DataRepository} from "./storage/data-repository";
 import {Executor} from "./storage/hooks/executor-config-hook";
+import {AppMetaEntry} from "./storage/types/app-meta";
 import {CredentialsCache, LocalRepository} from "./storage/types/local-repository";
 import {UserRepository} from "./storage/types/user-repository";
 
-const swapPath       = require("electron").app.getPath("userData") + path.sep + "swap";
+
+const userDataPath   = require("electron").app.getPath("userData");
+const swapPath       = userDataPath + path.sep + "swap";
 const swapController = new SwapController(swapPath);
 
 const fsController          = require("./controllers/fs.controller");
+const executionResultsCtrl  = require("./controllers/execution-results.controller");
 const acceleratorController = require("./controllers/accelerator.controller");
 const magnetLinkController  = require("./controllers/magnet-link.controller");
 const resolver              = require("./schema-salad-resolver/schema-salad-resolver");
@@ -95,7 +99,7 @@ export function resolve(path, callback: (err?: Error, result?: Object) => void) 
 
 export function getUserByToken(data: { url, token }, callback) {
     const api = new SBGClient(data.url, data.token);
-    api.getUser().then( result => {
+    api.getUser().then(result => {
         callback(null, result);
     }, err => callback(err));
 }
@@ -390,19 +394,23 @@ export function patchSwap(data: { local: boolean, swapID: string, swapContent?: 
     });
 }
 
-export function getLocalFileContent(path, callback) {
+export function getLocalFileContent(data: { path: string, forceFetch?: boolean }, callback) {
 
-    swapController.exists(path, (err, exists) => {
+    if (data.forceFetch) {
+        fsController.readFileContent(data.path, callback);
+    } else {
+        swapController.exists(data.path, (err, exists) => {
 
-        if (err) return callback(err);
+            if (err) return callback(err);
 
-        if (exists) {
-            return swapController.read(path, callback);
-        }
+            if (exists) {
+                return swapController.read(data.path, callback);
+            }
 
-        fsController.readFileContent(path, callback);
+            fsController.readFileContent(data.path, callback);
 
-    });
+        });
+    }
 }
 
 export function saveAppRevision(data: {
@@ -459,7 +467,9 @@ export function sendFeedback(data: { type: string, text: string }, callback) {
 
         const api = new SBGClient(url, token);
 
-        return api.sendFeedback(data.type, data.text);
+        const referrer = `Cottontail ${process.platform}`;
+
+        return api.sendFeedback(data.type, data.text, referrer);
     }).then(resolve => {
         callback(null, resolve);
     }, callback);
@@ -555,14 +565,14 @@ export function patchAppMeta(data: {
 
 export function probeExecutorVersion(data: { path: string }, callback) {
     repositoryLoad.then(() => {
-        const rabix = new RabixExecutor(repository.local.executorConfig);
+        const rabix = new RabixExecutor(repository.local.executorConfig.path);
 
         rabix.getVersion((err: any, version) => {
             if (err) {
                 if (err.code === "ENOENT") {
                     return callback(null, "");
                 } else if (err.code === "EACCESS") {
-                    return callback(null, `No execution permissions on ${data.path}`)
+                    return callback(null, `No execution permissions on ${data.path}`);
                 } else {
                     return callback(null, err.message);
                 }
@@ -576,15 +586,49 @@ export function probeExecutorVersion(data: { path: string }, callback) {
 export function executeApp(data: {
     appID: string,
     content: string,
-    jobPath: string,
+    appSource: "local" | "user",
     options: Object
 }, callback, emitter) {
 
     repositoryLoad.then(() => {
-        const {appID, content, jobPath, options} = data;
+        const {appID, content, appSource, options} = data;
 
-        const rabix = new RabixExecutor(repository.local.executorConfig);
+        const rabix = new RabixExecutor(repository.local.executorConfig.path);
 
-        rabix.execute(appID, content, jobPath, options, callback, emitter);
+        let userID = "local";
+        if (appSource !== "local") {
+            userID = repository.local.activeCredentials.id;
+        }
+
+        options["outDir"] = executionResultsCtrl.makeOutputDirectoryName(appID, userID);
+
+        let appJob = {};
+
+        const appMeta = repository[appSource].appMeta[appID] as AppMetaEntry;
+        if (appMeta && appMeta.job) {
+            appJob = appMeta.job;
+        }
+
+        new Promise((resolve, reject) => {
+            if (appSource === "local") {
+
+                resolver.resolveContent(content, appID)
+                    .then(obj => {
+                        const stringified = JSON.stringify(obj);
+                        resolve(stringified);
+                    }, reject);
+            } else {
+                resolve(content);
+            }
+
+        }).then((content: string) => {
+            console.log("Executing job", appJob, "with content", content);
+
+
+            rabix.execute(content, appJob, options, callback, emitter);
+
+        }, callback);
+
+
     })
 }
